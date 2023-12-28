@@ -1,0 +1,28 @@
+function obtenerNumeroCorreosOtrasEtiquetas(fecha, etiquetasSeleccionadas) {
+  var threads = GmailApp.search('after:' + fecha);
+  var otherLabelsCount = 0;
+
+  threads.forEach(function (thread) {
+    var messages = thread.getMessages();
+    var hasSelectedLabel = false;
+
+    messages.forEach(function (message) {
+      var labels = message.getThread().getLabels();
+      hasSelectedLabel = etiquetasSeleccionadas.some(function (etiqueta) {
+        return labels.some(function (label) {
+          return label.getName() === etiqueta;
+        });
+      });
+
+      if (hasSelectedLabel) {
+        return; // Salir del bucle si se encuentra una etiqueta seleccionada
+      }
+    });
+
+    if (!hasSelectedLabel) {
+      otherLabelsCount += messages.length;
+    }
+  });
+
+  return otherLabelsCount;
+}
