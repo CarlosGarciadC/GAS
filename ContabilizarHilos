@@ -1,0 +1,82 @@
+function crearInformeAcumuladoPorDia() {
+  var today = new Date();
+  var sheet = SpreadsheetApp.openById("1HWo8qANHCSFwoqFBJCLJjPGbQzBvq2-KP4NKI1AhS60").getSheetByName("Registro")
+  var fecha = Utilities.formatDate(today, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  var etiquetasSeleccionadas = [
+    'a.1-por-contabilizar-2023',
+     'a.1-por-contabilizar-2023-enviado-a-producto',
+     'a.1-por-contabilizar-2023-facturas-con-diferencias',
+     'a.1-por-contabilizar-2023-reservas-no-migradas',
+     'a.1-por-contabilizar-2023-seguros-trenes',
+     'a.2-reclamación-de-pago',
+     'a.3-cn-reclamadas',
+     'a.4-asignado-albert',
+     'a.4-asignados-a.4-oscar',
+     'a.4-asignados-asignado-carlos-f',
+     'a.4-asignados-asignado-elena',
+     'a.4-asignados-asignado-eli',
+     'a.4-asignados-asignado-iriel'
+     ]; // Coloca las etiquetas que te interesan
+  
+  // Encabezados de las columnas
+  var headers = ['Fecha'];
+  headers = headers.concat(etiquetasSeleccionadas);
+  headers.push('a.5-fichas-proveedores');
+  
+  var rowValues = [Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss")];
+  
+etiquetasSeleccionadas.forEach(function(etiqueta) {
+    var threads = GmailApp.search('label:' + etiqueta );
+    var count = threads.length; // Contar hilos en lugar de mensajes
+    rowValues.push(count);
+  });
+  
+  var otherLabelsCount = obtenerNumeroNuevosHilosOtrasEtiquetas(fecha, etiquetasSeleccionadas);
+  rowValues.push(otherLabelsCount);
+  
+  var lastRow = sheet.getLastRow();
+  var lastColumn = headers.length;
+  
+  sheet.getRange(lastRow + 1, 1, 1, lastColumn).setValues([rowValues]);
+  
+  // Agregar encabezados si no existen
+  var currentHeaders = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  if (!arraysEqual(currentHeaders, headers)) {
+    sheet.insertRowBefore(1);
+    sheet.getRange(1, 1, 1, lastColumn).setValues([headers]);
+  }
+  
+  Logger.log('Informe generado con éxito en la fila ' + (lastRow + 1));
+}
+
+function obtenerNumeroNuevosHilosOtrasEtiquetas(fecha, etiquetasSeleccionadas) {
+  var threads = GmailApp.search('after:' + fecha);
+  var otherLabelsCount = 0;
+
+  threads.forEach(function (thread) {
+    var labels = thread.getLabels();
+    var hasSelectedLabel = etiquetasSeleccionadas.some(function (etiqueta) {
+      return labels.some(function (label) {
+        return label.getName() === etiqueta;
+      });
+    });
+
+    if (!hasSelectedLabel) {
+      otherLabelsCount++;
+    }
+  });
+
+  return otherLabelsCount;
+}
+
+function formatDate(date) {
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+}
+
+function arraysEqual(arr1, arr2) {
+  if (arr1.length !== arr2.length) return false;
+  for (var i = 0; i < arr1.length; i++) {
+    if (arr1[i] !== arr2[i]) return false;
+  }
+  return true;
+}
